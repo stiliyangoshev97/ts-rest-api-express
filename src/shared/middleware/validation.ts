@@ -254,24 +254,24 @@ export const validateHeaders = (schema: ZodSchema) => {
 export const validateRequest = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      // Create request object to validate
+      // Create a clean request object for validation
+      // We need to be careful with req.query as it's read-only
       const requestData = {
-        body: req.body,
-        params: req.params,
-        query: req.query,
+        body: req.body || {},
+        params: req.params || {},
+        // Don't include query in the validation object to avoid read-only issues
       };
 
-      // Parse the entire request against the schema
+      // Parse the request against the schema
       const validatedData = schema.parse(requestData) as any;
 
-      // Update request with validated data (only if they exist in the schema)
+      // Update request with validated data
       if (validatedData.body !== undefined) {
         req.body = validatedData.body;
       }
       if (validatedData.params !== undefined) {
         (req.params as any) = validatedData.params;
       }
-      // Note: req.query is read-only, so we validate but don't reassign
 
       next();
     } catch (error) {

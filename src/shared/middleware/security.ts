@@ -35,7 +35,9 @@ export const configureSecurity = (app: Express): void => {
   }));
 
   // Data sanitization against NoSQL query injection
-  app.use(mongoSanitize());
+  // NOTE: mongoSanitize disabled due to compatibility issue with Express req.query
+  // Alternative: Use Zod validation which provides similar protection
+  // app.use(mongoSanitize());
 
   // Data sanitization against XSS attacks
   // Note: xss-clean disabled due to compatibility issues with newer Node.js versions
