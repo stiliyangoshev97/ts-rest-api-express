@@ -71,10 +71,6 @@ const userSchema = new Schema<UserDocument>({
     }
 })
 
-// Indexes for better query performance
-userSchema.index({ email: 1 }); // Unique index on email
-userSchema.index({ age: 1 }); // Index for age queries
-userSchema.index({ createdAt: -1 }); // Index for sorting by creation date
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
