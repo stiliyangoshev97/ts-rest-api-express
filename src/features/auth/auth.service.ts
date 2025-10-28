@@ -80,17 +80,24 @@ import crypto from 'crypto';
  */
 export const registerUser = async (userData: RegisterUserData): Promise<AuthResponse> => {
   try {
+    logger.info(`Starting user registration for: ${userData.email}`);
+    
     // Check if user already exists
     const existingUser = await User.findOne({ email: userData.email });
     if (existingUser) {
       throw new ApiError('Email already registered', 409);
     }
 
+    logger.info(`No existing user found, creating new user: ${userData.email}`);
+
     // Create new user (password will be hashed by mongoose middleware)
     const user = new User(userData);
     await user.save();
 
+    logger.info(`User saved to database: ${userData.email}, _id: ${user._id}`);
+
     // Generate JWT token
+    logger.info(`Attempting to generate JWT token for user: ${userData.email}`);
     const token = JWT.generateToken({ id: (user._id as any).toString(), email: user.email });
 
     logger.info(`User registered successfully: ${user.email}`);
