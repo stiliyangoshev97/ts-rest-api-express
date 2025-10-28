@@ -6,7 +6,7 @@
  * encoded user information and can be verified without a database lookup.
  */
 
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { ApiError } from './ApiError.js';
@@ -42,17 +42,27 @@ export interface JwtPayload {
  */
 export const generateToken = (payload: { id: string; email: string }): string => {
   try {
-    // Use type assertion to handle jsonwebtoken typing issues
-    const token = (jwt.sign as any)(
-      payload, 
-      env.JWT_SECRET, 
-      { expiresIn: env.JWT_EXPIRES_IN }
-    );
+    logger.info(`Generating JWT token for user: ${payload.email}`);
     
-    logger.debug(`JWT token generated for user: ${payload.email}`);
+    // Use environment variables directly - we know they work from our test
+    const jwtSecret = process.env.JWT_SECRET || env.JWT_SECRET;
+    const jwtExpires = process.env.JWT_EXPIRES_IN || env.JWT_EXPIRES_IN || '7d';
+    
+    if (!jwtSecret) {
+      logger.error('JWT_SECRET not available');
+      throw new Error('JWT_SECRET is required');
+    }
+    
+    // Use any type to bypass TypeScript issues
+    const token = (jwt as any).sign(payload, jwtSecret, { expiresIn: jwtExpires });
+    
+    logger.info(`JWT token generated successfully for user: ${payload.email}`);
     return token;
   } catch (error) {
-    logger.error(`Error generating JWT token: ${error}`);
+    logger.error(`JWT generation failed: ${error}`);
+    if (error instanceof Error) {
+      logger.error(`Error details: ${error.message}`);
+    }
     throw new ApiError('Failed to generate authentication token', 500);
   }
 };
@@ -79,8 +89,15 @@ export const generateToken = (payload: { id: string; email: string }): string =>
  */
 export const verifyToken = (token: string): JwtPayload => {
   try {
-    // Verify token signature and expiration
-    const decoded = jwt.verify(token, env.JWT_SECRET) as jwt.JwtPayload;
+    // Use environment variables directly and bypass TypeScript issues
+    const jwtSecret = process.env.JWT_SECRET || env.JWT_SECRET;
+    
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET not available for verification');
+    }
+    
+    // Verify token signature and expiration with type bypass
+    const decoded = (jwt as any).verify(token, jwtSecret) as jwt.JwtPayload;
     
     // Type guard to ensure we have the expected payload structure
     if (typeof decoded === 'object' && decoded && 'id' in decoded && 'email' in decoded) {
